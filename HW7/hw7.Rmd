@@ -1,0 +1,275 @@
+---
+title: "HW7"
+author: "Penny"
+date: "2023-04-27"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(magrittr)
+library(skimr)
+library(psych)
+library(tidyverse)
+library(kableExtra)
+library(Ecdat)
+library(gapminder)
+library(nycflights13)
+library(dplyr)
+library(scales)
+
+ptable = function(df,digits = getOption("digits"),size = 14){
+  df %>% knitr::kable(digits = digits) %>% 
+    kable_classic(lightable_options = c("striped", "hover", "condensed"),
+                  fixed_thead = list(enabled = T, 
+                                     background = "lavender"),
+                  font_size = size, full_width = F,
+                  html_font = "helvetica")}
+
+data(flights)
+```
+
+
+```{r}
+gapminder %>% 
+  filter(continent %in% c("Africa","Asia") & year %in% c(1957,2007)) %>% 
+  ggplot(aes(y = lifeExp,x = log(gdpPercap))) +
+  geom_point(aes(col = continent), size = 2) +
+  geom_smooth(aes(col = continent), method = lm, se = F) +
+  geom_smooth(aes(col = "All"), method = lm, se = F) +
+  scale_color_manual(values = c("Africa" = 'limegreen', 
+                                "Asia" = 'gold', 
+                                "All" = 'tomato')) +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = alpha("black",0.85)),
+        panel.grid = element_line(color = alpha("white",0.3),size = 0.1),
+        legend.title = element_text(color = "white"),
+        legend.text = element_text(color = "white"),
+        legend.box.background = element_rect(fill = alpha("black",0.85)))
+```
+
+
+```{r}
+gapminder %>% 
+  filter(continent %in% c("Africa","Asia") & year %in% c(1957,2007)) %>% 
+  mutate(conyear = paste(continent,year,sep="-")) %>% 
+  ggplot(aes(y = lifeExp,x = log(gdpPercap))) +
+  geom_point(aes(col = conyear), size = 2) +
+  geom_smooth(aes(col = conyear), size = 0.8, method = lm, se = F) +
+  geom_smooth(aes(col = "All"), size = 0.8, method = lm, se = F) +
+  scale_color_manual(values = c("Africa-1957" = alpha('limegreen',0.6), 
+                                "Africa-2007" = 'greenyellow', 
+                                "Asia-1957" = alpha('gold',0.4), 
+                                "Asia-2007" = 'yellow', 
+                                "All" = 'tomato'),
+                     guide_legend("Continent-Year")) +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = alpha("black",0.85)),
+        panel.grid = element_line(color = alpha("white",0.3),size = 0.1),
+        legend.title = element_text(color = "white"),
+        legend.text = element_text(color = "white"),
+        legend.box.background = element_rect(fill = alpha("black",0.85)))
+```
+
+
+# 第一題
+###### Please rewrite the first set of codes to create similar plots for the subsamples of year 1957 and 2007 (instead of the subsamples of two groups of countries 1957 and 2007).
+```{r}
+gapminder %>% 
+  filter(year %in% c(1957, 2007)) %>% 
+  ggplot(aes(y = lifeExp, x = log(gdpPercap))) +
+  geom_point(aes(col = continent), size = 2) +
+  geom_smooth(aes(col = continent), method = lm, se = F) +
+  geom_smooth(aes(col = "All"), method = lm, se = F) +
+  scale_color_manual(values = c("Africa" = 'limegreen', 
+                                "Americas" = 'dodgerblue', 
+                                "Asia" = 'gold', 
+                                "Europe" = 'darkorchid', 
+                                "Oceania" = 'orange', 
+                                "All" = 'tomato')) +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = alpha("black", 0.85)),
+        panel.grid = element_line(color = alpha("white", 0.3), size = 0.1),
+        legend.title = element_text(color = "white"),
+        legend.text = element_text(color = "white"),
+        legend.box.background = element_rect(fill = alpha("black", 0.85)))
+
+```
+
+# 第二題
+```{r}
+gapminder %>% 
+  filter(continent %in% c("Africa","Asia") & year %in% c(1957,2007)) %>% 
+  lm(lifeExp ~ log(gdpPercap),.) %>% summary()
+```
+
+```{r}
+gapminder %>% 
+  filter(continent %in% c("Africa","Asia") & year %in% c(1957,2007)) %>% 
+  lm(lifeExp ~ log(gdpPercap) + I(continent == "Africa") + I(log(gdpPercap)*(continent == "Africa")),.) %>% summary()
+```
+# green line 
+```{r}
+gapminder %>% 
+  filter(continent %in% c("Africa") & year %in% c(1957,2007)) %>% 
+  lm(lifeExp ~ log(gdpPercap),.) %>% summary()
+# coefficient estimates  : log(gdpPercap) = 5.5586 ,Intercept = 7.8456   
+```
+
+# yellow line
+```{r}
+gapminder %>% 
+  filter(continent %in% c("Asia") & year %in% c(1957,2007)) %>% 
+  lm(lifeExp ~ log(gdpPercap),.) %>% summary()
+# coefficient estimates: log(gdpPercap) = 7.40311 ,(Intercept) = -0.06339           
+```
+
+# 第三題
+###### Please estimate the two regression lines (the green one and the yellow one) from the plot you create in Question 1.
+```{r}
+gapminder %>% 
+  filter(year %in% c(1957, 2007)) %>% 
+  ggplot(aes(y = lifeExp, x = log(gdpPercap))) +
+  geom_point(aes(col = continent), size = 2) +
+  geom_smooth(aes(col = continent), method = lm, se = F) +
+  geom_smooth(aes(col = "All"), method = lm, se = F) +
+  scale_color_manual(values = c("Africa" = 'limegreen', 
+                                "Americas" = 'dodgerblue', 
+                                "Asia" = 'gold', 
+                                "Europe" = 'darkorchid', 
+                                "Oceania" = 'orange', 
+                                "All" = 'tomato')) +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = alpha("black", 0.85)),
+        panel.grid = element_line(color = alpha("white", 0.3), size = 0.1),
+        legend.title = element_text(color = "white"),
+        legend.text = element_text(color = "white"),
+        legend.box.background = element_rect(fill = alpha("black", 0.85)))
+```
+
+# green  one
+```{r}
+gapminder %>% 
+  filter(continent %in% c("Africa") & year %in% c(1957, 2007))%>% 
+  lm(lifeExp ~ log(gdpPercap),.) %>% summary()
+# Estimate: (Intercept)= 7.8456, log(gdpPercap) = 5.5586
+# 結果表明，非洲國家的人均 GDP 與預期壽命之間存在顯著的正相關關係，並且這種關係隨著時間的推移而加強。 交互項的係數和 p 值表明，與非非洲國家相比，非洲國家的截距更高，但斜率沒有顯著差異。
+```
+
+# yellow one
+```{r}
+gapminder %>% 
+  filter(continent %in% c("Asia") & year %in% c(1957, 2007))%>% 
+  lm(lifeExp ~ log(gdpPercap),.) %>% summary()
+# Estimate : (Intercept) = -0.06339, log(gdpPercap) = 7.40311
+#回歸模型的截距是-0.06339，這意味著當人均GDP的對數為0時，預測的平均壽命為exp(-0.06339)=0.938年。log(gdpPercap)的係數是7.40311，這意味著當人均GDP的對數增加1時，預測的平均壽命增加exp(7.40311)=1,684.57年。統計分析顯示，log(gdpPercap)的係數是顯著的（p<0.001），這意味著人均GDP的對數與壽命之間存在一個正向關係。多元R平方是0.5156，這意味著模型解釋了壽命變異的51.56%。調整後的R平方是0.508，考慮到模型自變量的數量，這個值比較好，這意味著這個模型可以適當地解釋壽命變異。
+```
+
+# 第四題
+###### In the previous hoomework we have explained why we need to trandform the ‘gdpPercap’ variable using log function. Please rewrite the first chunk of codes without transforming the ‘gdpPercap’ variable to see how awkward the resulting plot is.
+```{r}
+gapminder %>%
+  filter(continent %in% c("Africa", "Asia") & year %in% c(1957, 2007)) %>%
+  ggplot(aes(y = lifeExp, x = gdpPercap)) +
+  geom_point(aes(col = continent), size = 2) +
+  geom_smooth(aes(col = continent), method = lm, se = F) +
+  geom_smooth(aes(col = "All"), method = lm, se = F) +
+  scale_x_continuous(labels = scales::comma) +
+  scale_color_manual(values = c("Africa" = "limegreen", "Asia" = "gold", "All" = "tomato")) +
+  labs(x = "GDP per capita", y = "Life expectancy", color = "Continent") +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = alpha("black", 0.85)),
+        panel.grid = element_line(color = alpha("white", 0.3), size = 0.1),
+        legend.title = element_text(color = "white"),
+        legend.text = element_text(color = "white"),
+        legend.box.background = element_rect(fill = alpha("black", 0.85)))
+# 沒有 'gdpPercap' 的轉換，結果圖看起來很怪，因為 'gdpPercap' 和 'lifeExp' 之間的關係不是線性的。 “geom_smooth”函數將線性回歸線擬合到數據，但由於關係不是線性的，因此這條線不能很好地擬合數據。 此外，x 軸上的值非常大，因此很難看出數據的差異。 為了改善這樣的情況，我在 x 軸標籤上添加了一個逗號刻度，並將 x 軸標籤更改為“GDP per capita”。
+
+```
+
+# 第五題
+```{r}
+gapminder %>% 
+  filter(continent %in% c("Africa","Asia") & year %in% c(1957,2007)) %>% 
+  ggplot(aes(y=lifeExp,x=gdpPercap)) +
+  geom_point(aes(col = continent), size = 2) +
+  geom_smooth(aes(col = continent), method = lm, se = F) +
+  geom_smooth(aes(col = "All"), method = lm, se = F) +
+  scale_x_continuous(trans = "log", n.breaks = 7, 
+                     labels = label_number(0.01,big.mark = "")) +
+  scale_color_manual(values = c("Africa" = 'limegreen', 
+                                "Asia" = 'gold', 
+                                "All" = 'tomato')) +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = alpha("black",0.85)),
+        panel.grid = element_line(color = alpha("white",0.3),size = 0.1),
+        legend.title = element_text(color = "white"),
+        legend.text = element_text(color = "white"),
+        legend.box.background = element_rect(fill = alpha("black",0.85)))
+```
+
+```{r}
+gapminder %>% 
+  filter(continent %in% c("Africa","Asia") & year %in% c(1957,2007)) %>% 
+  ggplot(aes(y=lifeExp,x=gdpPercap)) +
+  geom_point(aes(col = continent), size = 2) +
+  geom_smooth(aes(col = continent), method = lm, se = F) +
+  geom_smooth(aes(col = "All"), method = lm, se = F) +
+  scale_x_log10(breaks = breaks_log(7), labels = label_number(big.mark = "")) +
+  scale_color_manual(values = c("Africa" = 'limegreen', 
+                                "Asia" = 'gold', 
+                                "All" = 'tomato')) +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = alpha("black",0.85)),
+        panel.grid = element_line(color = alpha("white",0.3),size = 0.1),
+        legend.title = element_text(color = "white"),
+        legend.text = element_text(color = "white"),
+        legend.box.background = element_rect(fill = alpha("black",0.85)))
+```
+
+# 1
+```{r}
+gapminder %>% 
+  filter(year %in% c(1957, 2007)) %>% 
+  ggplot(aes(y = lifeExp, x = gdpPercap)) +
+  geom_point(aes(col = continent), size = 2) +
+  geom_smooth(aes(col = continent), method = lm, se = F) +
+  geom_smooth(aes(col = "All"), method = lm, se = F) +
+  scale_x_log10() +
+  scale_color_manual(values = c("Africa" = 'limegreen', 
+                                "Americas" = 'dodgerblue', 
+                                "Asia" = 'gold', 
+                                "Europe" = 'darkorchid', 
+                                "Oceania" = 'orange', 
+                                "All" = 'tomato')) +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = alpha("black", 0.85)),
+        panel.grid = element_line(color = alpha("white", 0.3), size = 0.1),
+        legend.title = element_text(color = "white"),
+        legend.text = element_text(color = "white"),
+        legend.box.background = element_rect(fill = alpha("black", 0.85)))
+
+```
+
+# 2
+```{r}
+gapminder %>% 
+  filter(continent %in% c("Africa","Asia") & year %in% c(1957,2007)) %>% 
+  ggplot(aes(y = lifeExp, x = gdpPercap)) +
+  geom_point(aes(col = continent), size = 2) +
+  geom_smooth(aes(col = continent), method = lm, se = F) +
+  geom_smooth(aes(col = "All"), method = lm, se = F) +
+  scale_x_log10(breaks = breaks_log(7), labels = label_number(big.mark = "")) +
+  scale_color_manual(values = c("Africa" = 'limegreen', 
+                                "Asia" = 'gold', 
+                                "All" = 'tomato')) +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = alpha("black",0.85)),
+        panel.grid = element_line(color = alpha("white",0.3),size = 0.1),
+        legend.title = element_text(color = "white"),
+        legend.text = element_text(color = "white"),
+        legend.box.background = element_rect(fill = alpha("black",0.85)))
+
+```

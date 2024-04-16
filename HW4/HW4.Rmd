@@ -1,0 +1,215 @@
+---
+title: "HW4"
+authorb: "Penny"
+date: "2023-03-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(magrittr)
+library(skimr)
+library(psych)
+library(tidyverse)
+library(kableExtra)
+library(Ecdat)
+library(gapminder)
+
+ptable = function(df,digits = getOption("digits"),size = 14){
+  df %>% knitr::kable(digits = digits) %>% 
+    kable_classic(lightable_options = c("striped", "hover", "condensed"),
+                  fixed_thead = list(enabled = T, 
+                                     background = "lavender"),
+                  font_size = size, full_width = F,
+                  html_font = "helvetica")}
+
+data(diamonds)
+dmd <- diamonds
+```
+
+# 第一題
+```{r}
+mpg1 = mpg %>% mutate(
+    Oclass = reorder(class, hwy, FUN = mean, decreasing = TRUE),
+    Chwy = cut(hwy, breaks = 3, labels = c("low", "mid", "high"))
+  ) 
+
+mpg2 = mpg %>% transmute(
+    Oclass = reorder(class, hwy, FUN = mean, decreasing = TRUE),
+    Chwy = cut(hwy, breaks = 3, labels = c("low", "mid", "high"))) 
+
+mpg1 %>% ptable
+```
+```{r}
+mpg2 %>% ptable
+
+# mutate will keep all the variables in the data set, and add two new variables Oclass and Chwy, so mpg1 contains all the variables in the original data set and two new variables. Instead, transmute will only return the specified variables, so mpg2 only contains the Oclass and Chwy variables from the original dataset.
+# Therefore, mpg1 has richer results than mpg2 because it preserves all the variables in the original dataset. Also, mpg1 will add the calculated frequencies to the dataset, while mpg2 will not.
+```
+
+# 第二題
+```{r}
+mpg1_count = mpg1 %>% 
+  count(Oclass, Chwy) 
+
+mpg1_count %>% ptable()
+```
+
+```{r}
+mpg1_table = mpg1  %$% 
+  table(Oclass, Chwy)
+
+mpg1_table %>% ptable()
+```
+
+```{r}
+# The output using count() is more straightforward as it explicitly shows the counts for each Oclass-Chwy combination, while the table() output requires interpretation of row and column labels to understand the counts.
+
+# We need to use two different operators %>% and %$% because they serve different purposes:
+# %>% is used to pipe the data through a sequence of operations. It takes the output of the previous operation and passes it as the first argument of the next operation. This allows us to chain together multiple operations in a single line of code.
+
+# %$% is used to extract a single variable from a data frame and pass it to a function as the first argument. This allows us to apply a function to a specific variable in a data frame without having to subset the data frame first.
+```
+
+# 第三題
+```{r}
+data(package = "Ecdat") # List datasets with descriptions
+# 因為它會顯示在新的分頁，如果想確認可以跑跑看 Rmarkdown
+```
+
+```{r}
+library(dplyr)
+dd = c('red','yellow','white','skyblue')
+names(dd) = as.character(1:4) 
+# 1, 2, 3, and 4 serve as labels for the corresponding colors in the vector.
+
+Housing %$% recode(stories,!!!dd) 
+# Housing %>% mutate(stories = recode(stories, !!!dd)) %>% ptable() 
+# 如果要用原本的 Housing %>% recode(stories,!!!dd)) 可以用這mutate跑(會比較精緻)
+```
+
+
+```{r}
+par(mfrow = c(2,2),mar=c(4.5,4.5,1.2,2),
+    # mar=c(3,4.5,1.2,2),
+    bg = "black", fg = "white", 
+    col.lab = "white", col.main = "white", col.axis = "white")
+
+Housing %>% filter(bedrooms == 2) %$% 
+  plot(y = price,x = lotsize, xlab ="", 
+       pch = 16, 
+       main = "bedrooms = 2",
+       col = as.vector(recode(stories,!!!dd)))
+
+Housing %>% filter(bedrooms == 3) %$% 
+  plot(y = price,x = lotsize, pch = 16, ylab ="",
+       xlab ="",
+       main = "bedrooms = 3",
+       col = as.vector(recode(stories,!!!dd)))
+
+Housing %>% filter(bedrooms == 4| stories == 4) %$% 
+  plot(y = price,x = lotsize, pch = 16, 
+       main = "bedrooms = 4",
+       col = as.vector(recode(stories,!!!dd)))
+
+par(bg = "black", fg = "black", 
+    col.lab = "black", col.main = "black", col.axis = "black")
+
+Housing %>% filter(bedrooms == 1) %$% 
+  plot(y = price,x = lotsize, col = "black")
+
+par(bg = "black", fg = "white", 
+    col.lab = "white", col.main = "white", col.axis = "white")
+
+legend("left", inset = c(0.05,0.1),
+       pch = 16, ncol = 1, 
+       col = dd, y.intersp = 0.8,
+       title = "Stories",
+       legend = names(dd))
+```
+```{r}
+# Q:
+# Briefly explain how ‘lotsize’ affects ‘price’ 
+# and how the variables ‘stories’ and ‘bedrooms’ affact this ‘price/lotsize’ relationship.
+
+# A:
+# 'price' increase as 'lotsize' increase and we can see positive relationship between them.
+# the strength of ‘price/lotsize’ relationship varies depending on the value of bedrooms and stories.We can see that there is a positive relationship between price and lot size, but this relationship gets weaker as the number of bedrooms increases.Besides, houses with more stories generally having higher prices for a given lot size.We can also see that the color of the points in the plot changes depending on the value of stories, with houses with 4 bedrooms generally having more stories than houses with fewer bedrooms, and hence higher prices for a given lot size.
+```
+
+```{r}
+# Q:
+# You really need to figure out what the three ‘par()’ functions do and what the fourth ‘plot()’ function does (it is a channel helps to bring in the legend!).
+
+# A:
+# We use ‘par()’ to set the parameter of plot.
+# The fourth ‘plot()’ function make the plot (bedrooms == 1)'s color equal to the background's color, so that we can have the space to plot the legend.  
+```
+
+```{r}
+dd <- c('red','gray','yellow','cyan','white')
+names(dd) <- c('Africa','Americas','Asia','Europe','Oceania')
+gapminder %$% recode(continent,!!!dd) 
+
+gapminder_data <- gapminder %>% filter(year %in% c(1952, 1977, 2002))
+
+par(mfrow = c(2,2),mar=c(4.5,4.5,1.2,2),
+    # mar=c(3,4.5,1.2,2),
+    bg = "black", fg = "white", 
+    col.lab = "white", col.main = "white", col.axis = "white")
+
+gapminder %>% filter(year == 1952) %$% 
+  plot(y = lifeExp,x = gdpPercap, xlab ="", 
+       xlim = c(0,50000),  ylim = c(35,85),
+       pch = 16, 
+       main = "year == 1952",
+       col = as.vector(recode(continent,!!!dd)))
+
+gapminder %>% filter(year == 1977) %$% 
+  plot(y = lifeExp,x = gdpPercap, xlab ="", 
+       xlim = c(0,50000),  ylim = c(35,85),
+       pch = 16, 
+       main = "year == 1977",
+       col = as.vector(recode(continent,!!!dd)))
+
+gapminder %>% filter(year == 2002) %$% 
+  plot(y = lifeExp,x = gdpPercap, xlab ="", 
+       xlim = c(0,50000),  ylim = c(35,85),
+       pch = 16, 
+       main = "year == 2002",
+       col = as.vector(recode(continent,!!!dd)))
+
+par(bg = "black", fg = "black", 
+    col.lab = "black", col.main = "black", col.axis = "black")
+
+gapminder %>% filter(year == 2002) %$% 
+    plot(y = lifeExp,x = gdpPercap, xlab ="", 
+       xlim = c(0,50000),  ylim = c(35,85),
+       pch = 16, 
+       main = "year == 2002",
+       col = "black")
+
+par(bg = "black", fg = "white", 
+    col.lab = "white", col.main = "white", col.axis = "white")
+
+legend("left", inset = c(0.2,0.1),
+       pch = 16, ncol = 1, 
+       col = dd, y.intersp = 0.8,
+       title = "continent",
+       legend = names(dd))
+
+```
+
+```{r}
+# Q:
+# (why do you need these options?) The titles of each facet and the legend should be changed. The specification of the ‘recode()’ function should also be modified.
+# A:
+# we need `DD = C ('Red', 'Gray', 'YELLOW', 'Cyan', 'White')` and `names (dd) = c ('africa', 'American', 'Asia', 'EUROPE', 'Oceania')` two functions to make each "continent" correspond to different colors.
+# We need xlim = c (0,50000), ylim = c (35,85) to make the seat range of each picture the same.
+
+#Q:
+# Please explain why ‘lifeExp’ should be the y variable and ‘gdpPercap’ should be x variable. Which continent has the most significant improvement in life over the 4 decades?
+# A:
+#It want to explore the relationship between economic development (measured by GDP per capita) and life expectancy.In this way, we can observe whether everyone's healthy lifespan also grows with the growth of GDP. Asia has the most significant improvement in life over the 4 decades.
+```

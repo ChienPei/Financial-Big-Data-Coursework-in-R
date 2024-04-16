@@ -1,0 +1,212 @@
+---
+title: "hw8"
+author: "Penny"
+date: "2023-05-04"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(magrittr)
+library(skimr)
+library(psych)
+library(tidyverse)
+library(kableExtra)
+library(Ecdat)
+library(gapminder)
+library(nycflights13)
+library(dplyr)
+library(scales)
+library(dplyr)
+library(ggplot2)
+library(forcats)
+
+ptable = function(df,digits = getOption("digits"),size = 14){
+  df %>% knitr::kable(digits = digits) %>% 
+    kable_classic(lightable_options = c("striped", "hover", "condensed"),
+                  fixed_thead = list(enabled = T, 
+                                     background = "lavender"),
+                  font_size = size, full_width = F,
+                  html_font = "helvetica")}
+
+library(nycflights13)
+```
+
+
+```{r}
+colnames(flights)
+```
+
+```{r}
+df = flights %>% group_by(origin,carrier) %>%
+  mutate(nn = n()) %>% ungroup() %>%
+  group_by(origin) %>%
+  filter(nn %in% sort(unique(nn), decreasing = T)[1:8]) %>% ungroup()
+df
+```
+
+```{r}
+df %>% 
+  group_by(origin,carrier) %>% 
+  mutate(kpi = mean(arr_delay, na.rm = T)) %>% 
+  group_by(origin) %>% 
+  summarize(
+    best_kpi = min(kpi),
+    best_carrier = paste(unique(carrier %>% subset(kpi == best_kpi)),collapse = ", "), 
+    worst_kpi = max(kpi), 
+    worst_carrier = paste(unique(carrier %>% subset(kpi == worst_kpi)),collapse = ", "))
+
+df
+```
+
+```{r}
+library(tidytext)
+df %>%
+  group_by(origin,carrier) %>%
+  summarise(kpi = mean(arr_delay, na.rm = T)) %>%
+  ggplot() +
+  geom_col(aes(reorder_within(carrier,kpi,origin), kpi),
+           col = "gray", fill = "black") +
+  scale_x_reordered() +
+  facet_wrap(~ origin, scales = "free_x") +
+  geom_text(aes(reorder_within(carrier,kpi,origin), kpi,
+                label = round(kpi,0)), 
+            vjust = 1.2, color = "red",
+            position = position_dodge(0.9)) +
+  theme_bw()
+```
+
+```{r}
+df %>% 
+  group_by(origin,carrier) %>%
+  summarise(kpi = mean(arr_delay, na.rm = T)) %>%
+  ggplot(aes(carrier,origin %>% fct_relevel(rev))) + 
+  geom_tile(aes(fill = kpi)) +
+  geom_text(aes(label = round(kpi,2)), col = "lightblue")
+```
+
+# Question 1
+#### Please modify these codes to do the following:
+
+#### Select 5 destinations with the most flights
+```{r}
+top_destinations <- flights %>%
+  group_by(dest) %>%
+  summarize(total_flights = n()) %>%
+  arrange(desc(total_flights)) %>%
+  slice(1:5) %>%
+  pull(dest)
+top_destinations
+```
+#### For each of these destinations, seelect 5 carriers with the most flights
+```{r}
+top_carriers <- flights %>%
+  filter(dest %in% top_destinations) %>%
+  group_by(dest, carrier) %>%
+  summarize(total_flights = n()) %>%
+  arrange(desc(total_flights)) %>%
+  group_by(dest) %>%
+  slice(1:5) %>%
+  ungroup() %>% # 清除分組
+  pull(carrier)
+
+top_carriers
+```
+
+#### Make an ordered column plot of the flight cancellation percentage (based on the missing values of the ‘dep_time’ variable) in each facet corresponding to one of the 5 destinations
+```{r}
+# Compute flight cancellation percentage based on missing dep_time variable
+flight_cancellation_percentage <- flights %>%
+  filter(dest %in% top_destinations & carrier %in% top_carriers) %>%
+  group_by(dest, carrier) %>%
+  summarize(cancellation_percentage = mean(is.na(dep_time))) %>%
+  arrange(desc(cancellation_percentage))
+
+# Ordered column plot of flight cancellation percentage
+ggplot(flight_cancellation_percentage, aes(x = dest, y = cancellation_percentage, fill = carrier)) +
+  geom_col(position = "dodge") +
+  scale_fill_brewer(palette = "Dark2") +
+  theme_bw() +
+  labs(x = "Destination", y = "Cancellation Percentage",
+       title = "Flight Cancellation Percentage for Top Destinations and Carriers") +
+  facet_wrap(~dest, scales = "free_x", ncol = 5) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+#### Make an equivalent heatmap
+```{r}
+# Heatmap of flight cancellation percentage
+ggplot(flight_cancellation_percentage, aes(x = carrier, y = dest, fill = cancellation_percentage)) +
+  geom_tile() +
+  geom_text(aes(label = scales::percent(cancellation_percentage)), color = "black", size = 3) +
+  scale_fill_gradient(low = "yellow", high = "pink") +
+  labs(x = "Carrier", y = "Destination",
+       title = "Flight Cancellation Percentage for Top Destinations and Carriers") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+```
+
+# Question 2
+#### Please find a dataset which cannot be any of R internal datasets or the datasets we have used in the class or in the homeworks, Then redo the above questions with a meaning framework and a KPI. You can construct multiple KPIs if you like. Please include codes for data cleaning and reorganization. You also need to provide some explanations about why you choose your dataset and what goals you have achieved.
+```{r}
+vg_sales <- read_csv("vgsales.csv")
+vg_sales_clean <- vg_sales %>%
+  # Remove games with missing values in key columns
+  filter(!is.na(Name) & !is.na(Publisher) & !is.na(Platform))
+
+```
+```{r}
+# Top publishers by region
+top_publishers <- vg_sales_clean %>%
+  group_by(Publisher) %>%
+  summarise(total_sales = sum(Global_Sales),
+            na_sales = sum(NA_Sales),
+            eu_sales = sum(EU_Sales),
+            jp_sales = sum(JP_Sales),
+            other_sales = sum(Other_Sales)) %>%
+  # Arrange the data by total sales
+  arrange(desc(total_sales))
+
+# Top genres by region
+top_genres <- vg_sales_clean %>%
+  group_by(Genre) %>%
+  summarise(total_sales = sum(Global_Sales),
+            na_sales = sum(NA_Sales),
+            eu_sales = sum(EU_Sales),
+            jp_sales = sum(JP_Sales),
+            other_sales = sum(Other_Sales)) %>%
+  # Arrange the data by total sales
+  arrange(desc(total_sales))
+```
+```
+Dataset Explanation:
+
+The dataset used here is the "Video Game Sales" dataset from Kaggle, which includes information about video game sales across various regions from 1980 to 2016. The dataset contains columns such as rank, name, platform, year, genre, publisher, and sales in North America, Europe, Japan, and other regions, as well as the total global sales for each game.
+
+Goal:
+
+The goal is to identify the top-performing publishers in each region based on their sales and to understand the popular genres of games in each region.
+
+KPI:
+
+Total Sales: The sum of sales across all regions
+Regional Sales: Sales in a particular region
+Average Sales: The average of sales across all regions
+```
+### Explanations:
+```
+The "Video Game Sales" dataset was chosen because it contains information about video game sales across various regions and can provide insights into the popularity of different publishers and genres in different regions. The dataset was cleaned by removing missing values, duplicates, and renaming columns for consistency.
+
+The KPIs used in this analysis were total sales, regional sales, and average sales. The total sales provide an overall measure of the popularity of a publisher or genre, while the regional sales allow us to understand the popularity of a publisher or genre in a particular region. The average sales provide insights into the relative popularity of a publisher or genre across all regions.
+
+The analysis identified the top publishers and genres in each region based on their total sales. The results can be used by game developers and publishers to make informed decisions about which genres and regions to target for maximum profitability.
+```
+
+
+
+

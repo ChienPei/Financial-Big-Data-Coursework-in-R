@@ -1,0 +1,176 @@
+---
+title: "HW3"
+author: "Penny"
+date: "2023-03-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(magrittr)
+library(skimr)
+library(psych)
+library(tidyverse)
+library(kableExtra)
+
+ptable = function(df,digits = getOption("digits"),size = 14){
+  df %>% knitr::kable(digits = digits) %>% 
+    kable_classic(lightable_options = c("striped", "hover", "condensed"),
+                  fixed_thead = list(enabled = T, 
+                                     background = "lavender"),
+                  font_size = size, full_width = F,
+                  html_font = "helvetica")}
+
+data(diamonds)
+dmd <- diamonds
+```
+
+# Question 1
+```{r}
+library(skimr)
+skim(dmd$price)
+
+# 價格的均值和中值分別為 3932.8 和 2401。 這兩個值之間的巨大差異是因為“價格”變量的分佈形狀可能不對稱，而是具有正偏度。這表示這個變數的高值對均值的影響更大，對中位數的影響更小。如果分佈形狀是對稱的，則均值和中位數之間的差異會比較小。
+```
+
+# Question 2
+```{r}
+boxplot(dmd$price, horizontal = TRUE)
+
+# 從這個箱線圖中，我們可以看出“價格”變量的分佈形狀向右偏斜，即有一些價格較高的昂貴鑽石影響平均值。這與上一題中“skim()”函數得到的結果一致，進一步證明我們對“價格”變量分佈形狀的推測。
+```
+
+# Question 3
+```{r}
+hist(dmd$price, probability = TRUE, ylim = c(0,0.0004))
+lines(density(dmd$price))
+
+# 直方圖用長條表示“價格”變量的頻率分佈，密度圖用平滑曲線表示“價格”變量的機率密度分佈。 可以看到“價格”變量的分佈形狀向右偏斜，有一些極值。這與我們之前使用箱線圖和“skim()”函數得到的結果一致。
+
+# "ylim = c(0,0.0004)" 這個選項將y軸的範圍限制在0到0.0004之間，可以讓長條圖和密度圖的對比更加直觀。如果不加這個選項，y軸的範圍可能會根據數據的分佈自動調整，使得長條圖和密度圖的比較沒那麼直觀(沒那麼好看)。
+```
+
+# Question 4
+```{r}
+dmd <- subset(diamonds, price <= quantile(diamonds$price, probs = 0.4))
+
+# 拿到前 40% 的最小值的價格後，我們可以在 `dmd` 中專門對這些最小值進行分析，不受其他值的影響。這種做法通常用於研究特定市場或產品的低價格範圍，或者用於檢查極端值或異常值。
+```
+
+# Question 5
+```{r}
+dmd$Cprice <- cut(dmd$price, breaks = 4, labels = c('cheap', 'moderate', 'costly', 'verycostly'))
+head(dmd,10) %>% ptable() # 印出前10筆
+```
+
+
+# Question 6
+```{r}
+table(dmd$color, dmd$Cprice)
+
+#  cross-table可以幫助我們理解兩個分類變量之間的關係。其中的 row 代表不同級別的“顏色”，col 代表不同級別的“Cprice”，表中的數字代表每個組合的計數。
+
+# 我們可以從 row 或 col 的角度來做。 例如我們從“顏色”的角度來看，表中每一個 row 代表一個顏色等級的鑽石，我們可以看到在不同的價格類別下，每個顏色等級的鑽石數量是不同的。 同樣，我們從 “Cprice” 的角度來看，表中每一個 col 代表一個價格分類，可以看到不同價格分類下每個顏色等級的鑽石數量是不同的。
+```
+
+
+# Question 7
+```{r}
+
+dmd %$% table(color, Cprice) %>% barplot(legend.text = rownames(.), horiz = TRUE, 
+                                         col = palette("Set 3")[2:8] %>% alpha(0.6),
+                                         args.legend = list(x = "topright", inset = c(0.02,-0.15),
+                                         title = "color", horiz = T))
+
+# palette("Set 3")[2:8] %>% alpha(0.6) 用來設定圖表中條形的顏色。 palette("Set 3") 是由七種不同顏色組成的調色板，使用 [2:8] 範圍來選擇除第一種顏色之外的其餘六種顏色。 alpha(0.6) 會將每種顏色的透明度設為 0.6。
+
+# list(x = "topright", inset = c(0.02,-0.15), title = "color", horiz = T). x參數設置圖例出現在圖表的右上角； inset參數設置圖例相對於圖表右上角的偏移量，0.02表示向右偏移0.02個單位，-0.15表示向下偏移0.15個單位； title參數設置圖例； horiz 長條圖是水平還是垂直方向。
+```
+
+# Question 8
+```{r}
+table(dmd$Cprice, dmd$color) %>% barplot(col = palette("Set 3")[2:5] %>% alpha(0.6), legend.text = rownames(.),horiz = TRUE, 
+        args.legend = list(x = "topright", inset = c(0.02,-0.15), title = "Cprice", horiz = T))
+
+# 因為我們想看 color 和 Cprice 兩個變數之間的關係，因此將 color 作為列比較自然，因為我們通常會先看一個變數，然後根據該變數將數據進行分組和分析 
+
+# 此外，我們使用了 col 參數來調整顏色。由於 color 是變數的名稱，因此如果將 color 作為 col，則圖表的顏色可能會與變數名稱混淆，因此需要特別調整 col 參數。而將 color 作為列之後，由於圖表的列已經包含了變數名稱，因此可以不需要調整 col 參數，比較整潔。
+```
+
+# Question 9
+```{r}
+tapply(dmd$carat, list(dmd$color, dmd$Cprice), mean)
+
+# The categorical variable “carat”代表鑽石的重量（以克拉為單位）。
+```
+
+# Question 10
+```{r}
+tapply(dmd$carat, list(dmd$color, dmd$Cprice), mean) %>% barplot(horiz = TRUE,legend.text = rownames(.), col = palette("Set 3")[2:8] %>% alpha(0.6), 
+        main = "Subsample Averages of Carat",
+        args.legend = list(x = "topright", horiz = T, title = "color", inset = c(0.02,-0.05)))
+
+# “horiz = TRUE”：將條形的方向設置為水平。“col = palette("Set 3")[2:8] %>% alpha(0.6)”：將條形的顏色設置為來自 `RColorBrewer` 的顏色調色板，alpha 值為 0.6 表示稍微透明。 
+# "main = "Subsample Averages of Carat": 設定了圖的標題。
+# "args.legend = list(x = "topright", horiz = T, title = "color",inset = c(0.02,-0.05) )": 這設定了圖例的位置、方向、標題和插圖。圖例位於圖的右上角，水平方向，標題為“顏色”，調整圖例和 plot 之間的距離。
+```
+
+# Question 11
+```{r}
+tapply(dmd$carat, list(dmd$color, dmd$Cprice), mean) %>% 
+  .[order(.[,1],decreasing = T),] %>% 
+  .[,order(.[1,],decreasing = T)] %>% 
+  barplot(main = "Subsample Averages of Carat", horiz = TRUE, 
+          col = palette("Set 3")[2:8] %>% alpha(0.6),
+          legend.text = rownames(.),
+          args.legend = list(x = "topright",horiz = T, title = "color", inset = c(0.02,-0.05)))
+
+# .[order(.[,1],decreasing = T),] 使用`.`引用上一個命令創建的對象（這題是交叉表）。它根據第一 col 中的值按降序對 table 行進 row 的排序。
+
+# .[,order(.[1,],decreasing = T)] 根據第一個 row 中的值按降序對 table 的 col 進行排序。
+# 通過將這兩個指令與 %>% 運算符一起使用，我們首先對 table 的 row 進行排序，然後在建水平條形圖之前對 table 的 col 進行排序。 這可確保畫的圖顯示最相關的信息，並使其更容易解釋結果。
+```
+
+# Question 12
+```{r}
+callprice = function(xt = 10, K = 10, r = 0.03, eta = 0.02, sigma = 0.4, t = 0, T = 0.5){
+  
+  # 計算 d1 和 d2 
+  d1 = (log(xt/K) + (r - eta + sigma^2/2)*(T - t)) / (sigma*sqrt(T - t))
+  d2 = d1 - sigma*sqrt(T - t) # 因為這個公式可以打比較少字，所以我用這個 
+  
+  Nd1 = pnorm(d1)
+  Nd2 = pnorm(d2)
+  
+  c = xt*exp(-eta*(T - t))*Nd1 - K*exp(-r*(T - t))*Nd2
+  return(c)
+}
+```
+
+# Question 13
+```{r}
+ct = function(x, T)
+{
+  callprice(sigma = x, T = T)
+}
+curve(ct(x, T = 1), from = 0, to = 4, n = 200)
+curve(ct(x, T = 0.5), from = 0, to = 4, n = 200, add = TRUE, col = "green")
+curve(ct(x, T = 10), from = 0, to = 4, n = 200, add = TRUE, col = "red")
+
+# 根據曲線圖可以看出，sigma和T兩個參數對看漲期權價格都有影響。當sigma增大時，看漲期權價格也隨之增大；而當T增大時，看漲期權價格則會變得更加依賴於股票價格的波動率，即隨著波動率的增大，看漲期權價格會變得更加昂貴。
+
+# 因為curve()函數需要傳入一個只有一個參數的函數作為輸入，而callprice()函數本身有兩個參數，因此需要將其中的一個參數固定下來，以符合curve()函數的條件。 ct()函數實現了將callprice()函數的兩個參數轉換為一個參數的功能，方便後續的曲線繪製。
+```
+
+# Question 14
+```{r}
+plot(NULL, xlim = c(0, 20), ylim = c(0, 25), xlab = "xt", ylab = "Call Price")
+ct_xt = function(x, T, col) {
+  curve(callprice(xt = x, T = T), from = 0, to = 20, n = 200, add = TRUE, col = col)
+}
+
+ct_xt(x = 10, T = 1 ,col = "black")
+ct_xt(x = 10, T = 0.5 ,col = "green")
+ct_xt(x = 10, T = 10 ,col = "red")
+```

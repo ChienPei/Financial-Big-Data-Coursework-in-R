@@ -1,0 +1,330 @@
+---
+title: "HW5"
+authorb: "Penny"
+date: "2023-03-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(magrittr)
+library(skimr)
+library(psych)
+library(tidyverse)
+library(kableExtra)
+library(Ecdat)
+library(gapminder)
+library(stringr)
+
+ptable = function(df,digits = getOption("digits"),size = 14){
+  df %>% knitr::kable(digits = digits) %>% 
+    kable_classic(lightable_options = c("striped", "hover", "condensed"),
+                  fixed_thead = list(enabled = T, 
+                                     background = "lavender"),
+                  font_size = size, full_width = F,
+                  html_font = "helvetica")}
+
+```
+
+
+# 第一題
+```{r}
+data(mpg)
+
+# mpg[, sapply(mpg, is.numeric) ] %$% apply(mpg_numeric, 2, function(x) c(mean = mean(x), max = max(x), quantile(x, probs = 0.25))) %>% ptable() 
+apply(mpg[, sapply(mpg, is.numeric) ], 2, function(x) c(mean = mean(x), max = max(x), quantile(x, probs = 0.25))) %>% ptable() 
+```
+
+# 第二題
+```{r}
+
+# (1) the 6 summary statistics: Min., 1st Qu., Median, Mean, 3rd Qu
+summary(mpg$hwy) 
+
+# Max. (2) the value of the 143-th element
+mpg$hwy[143]
+```
+
+# 第三題
+```{r}
+# data(mpg)
+char_vars <- sapply(mpg, is.character)
+mpg_char <- mpg[, char_vars]
+
+max_char_count <- sapply(mpg_char, function(x) max(str_count(x, "[[:alnum:]]")))
+max_char_count %>% ptable()
+```
+
+# 第四題
+```{r}
+mpg %>% select(manufacturer,model,trans,drv,fl,class,displ,year,cyl,cty,hwy)  %>% ptable()
+```
+
+
+```{r}
+# mpg %>% relocate(-where(is.character)) %>% ptable()
+library(dplyr)
+data(mpg)
+mpg %>% relocate(-where(is.numeric)) %>% ptable()
+```
+
+# 第五題
+```{r}
+a = mpg %>% slice(1:20) 
+ptable(a)
+```
+
+```{r}
+# Please use the ‘slice()’ function to move the last rows of ‘a’ to the front?
+bind_rows(a %>% slice(20), a %>% slice(0:19)) %>% ptable()
+```
+```{r}
+# Please use the ‘slice()’ function to move all the rows with even row numbers of ‘a’ to the front?
+bind_rows(a %>% slice(seq(2, nrow(a), by = 2)) ,a %>% slice(seq(1, nrow(a), by = 2))) %>% ptable()
+```
+```{r}
+bind_rows(a[20,],a[0:19,] ) %>% ptable()
+```
+```{r}
+# Please use brackets ‘[]’ to redo these two exercise.
+bind_rows(a[20,],a[0:19,] ) %>% ptable()
+```
+```{r}
+bind_rows(a[seq(2, nrow(a), by = 2), ],a[seq(1, nrow(a), by = 2), ] ) %>% ptable()
+```
+```{r}
+# Again please use the ‘subset()’ function to redo these two exercise.
+bind_rows(subset(mpg, 1:nrow(mpg) %in% 20),subset(mpg, 1:nrow(mpg) %in% 0:19)) %>% ptable()
+```
+
+```{r}
+bind_rows(subset(a, seq_len(nrow(a)) %% 2 == 0), subset(a, seq_len(nrow(a)) %% 2 == 1) ) %>% ptable()
+```
+
+# 第六題
+```{r}
+select(mpg %>% arrange(displ, hwy) %>% rowid_to_column() %>% arrange(rowid), -rowid) %>% ptable()
+```
+
+```{r}
+mpg %>% arrange(hwy,displ)
+
+# 與 mpg %>% arrange(displ,hwy)不同的是數據排序的順序。上述命令對mpg數據集先按hwy升序排序，再按displ升序排序。 
+# 另一方面，前面的命令首先按 displ 升序排序 mpg 數據集，然後按 hwy 升序排序。 因此，生成的數據集將具有相同的行，但根據列的不同順序進行不同的排序。
+```
+
+# 第七題
+```{r}
+# Modify the values of the ‘drv’ variable as follows: if the value of ‘drv’ is equal to ‘4’ and the value of the ‘year’ variable is equal to 1999, then change the value of ‘drv’ to missing value.
+mpg %>% mutate(drv = if_else(drv == "4" & year == 1999, NA_character_, drv)) %>% ptable()
+```
+
+
+```{r}
+mpg %>%  mutate(gas_performance = if_else(abs(hwy - cty) < 10, "good", "bad")) %>% ptable()
+```
+```{r}
+mpg %>% mutate(gas_performance = if_else(abs(hwy - cty) < 10, "good", "bad")) %>% select(drv, gas_performance, displ, everything()) %>% ptable()
+```
+
+# 第八題
+```{r}
+library(nycflights13)
+# 因為數據太大，如果丟ptable()電腦會跑不動，所以我用 slice(1:20) 顯示前20筆
+
+# Using filter()
+flights %>% filter(row_number() %% 10000 %in% c(0, 1, 2)) %>% slice(1:20)  %>% ptable()
+
+# Using slice()
+flights %>% slice(seq(10000, n(), by = 10000)) %>% slice(1:20) %>% ptable()
+
+
+# Selecting every third variable
+flights %>% select(seq(3, ncol(.), by = 3)) %>% slice(1:20) %>% ptable()
+
+```
+
+# 第九題
+```{r}
+mpg %>% mutate(trans = ifelse(str_starts(trans, "auto"), "auto", "manual")) %>% ptable()
+```
+
+# 第十題
+```{r}
+nsb = 4  # The number of State Banks 
+npb = 5  # The number of Private Banks 
+nfb = 3  # The number of Foreign Banks 
+nyear = 4
+nn = (nsb+npb+nfb)*nyear
+year = 2019:(2019+nyear-1)
+
+# The given average numbers 1000, 1500, and 2000 of consumer loans 
+# for the 3 types of banks and for all years
+# which grow at the 3% rate per year
+CLn0 = c(rep(1000,nsb),rep(1500,npb),rep(2000,nfb)) %x% 
+  seq(1,length = nyear,by=0.03)
+# The given average numbers 200, 150, and 100 of business loans 
+# for the 3 types of banks and for all years
+# which grow at the 5% rate per year
+BLn0 = c(rep(200,nsb),rep(150,npb),rep(100,nfb)) %x% 
+  seq(1,length = nyear,by=0.05)
+
+# The given average default rates 1%, 2% and 0.5% of consumer loans 
+# for the 3 types of banks and for all years
+# which grow at the 4% rate per year
+CLd0 = c(rep(0.01,nsb),rep(0.02,npb),rep(0.005,nfb)) %x% 
+  seq(1,length = nyear,by=0.04)
+# The given average default rates 3%, 4% and 4% of business loans 
+# for the 3 types of banks and for all years
+# which grow at the 6% rate per year
+BLd0 = c(rep(0.03,nsb),rep(0.04,npb),rep(0.04,nfb)) %x% 
+  seq(1,length = nyear,by=0.06)
+
+set.seed(123)
+# Simulating the number of consumer loans for all banks and for all years
+# from Poisson distribution with the mean parameter CLn0
+CLn = rpois(nn,CLn0)  
+# Simulating the number of business loans for all banks and for all years
+# from Poisson distribution with the mean parameter BLn0
+BLn = rpois(nn,BLn0)
+# Simulating the number of defaulted consumer loans for all banks and for all years
+# from binomial distribution with n parameter CLn and p parameter CLd0
+CLd = rbinom(nn,CLn,CLd0)
+# Simulating the number of defaulted business loans for all banks and for all years
+# from binomial distribution with n parameter BLn and p parameter BLd0
+BLd = rbinom(nn,BLn,BLd0)
+
+CLPD = 100*CLd/CLn
+BLPD = 100*BLd/BLn
+
+#_____________________________________________________
+
+PD = rbind(CLPD,BLPD) %>% as.vector()
+
+PDW = PD %>% matrix(nsb+npb+nfb,2*nyear,byrow = T) 
+colnames(PDW) = kronecker(as.character(year),c("CL","BL"),paste0)
+```
+
+```{r}
+PD
+
+# ‘PD’ vector has a length of ‘2*(nsb+npb+nfb)*nyear’, which is the total number of observations for both loan types and all banks over the four-year period. The first half of the vector corresponds to consumer loans, and the second half corresponds to business loans. The default rates for each bank and loan type are arranged in the vector in the order of the banks and years they appear in the simulation.
+```
+```{r}
+PDW
+# ‘PDW’ has ‘nsb+npb+nfb’ rows, which is the number of different types of banks, and ‘2*nyear’ columns, which is the number of years multiplied by two since there are two loan types. The columns are named using the ‘kronecker()’ function, which repeats the year and loan type labels to match the number of columns in the matrix. In the resulting matrix, each row corresponds to a different type of bank, and the columns correspond to different years and loan types. The entries in the matrix represent the default rates for each bank, year, and loan type. This wide format is often more convenient for data analysis and visualization compared to the long format.
+```
+```{r}
+B1 = expand_grid(bank = c(paste0("SB",1:nsb),
+                          paste0("CB",1:npb),
+                          paste0("FB",1:nfb)),
+                 year,
+                 loantype = c("CL",'BL'))
+
+B2 = expand_grid(bank = c(paste0("SB",1:nsb),
+                          paste0("CB",1:npb),
+                          paste0("FB",1:nfb)),
+                 year)
+
+B3 = tibble(bank = c(paste0("SB",1:nsb),
+                     paste0("CB",1:npb),
+                     paste0("FB",1:nfb)))
+
+# The expand_grid() function creates a tibble with all combinations of the input vectors as columns.
+```
+
+```{r}
+B1 %>% ptable()
+# Bank has all possible combinations of "SB1" to "SB4", "CB1" to "CB5", and "FB1" to "FB3". year has values from 2019 to 2022, and loantype has values "CL" and "BL". Therefore, B1 has a total of (nsb+npb+nfb)*nyear*2 rows.
+```
+
+```{r}
+B2 %>% ptable()
+# Bank and year have the same values as in B1, but loantype is not included. Therefore, B2 has a total of (nsb+npb+nfb)*nyear rows.
+```
+
+```{r}
+B3 %>% ptable()
+# Bank has the same values as in B1 and B2, but year and loantype are not included. Therefore, B3 has a total of (nsb+npb+nfb) rows.
+```
+
+```{r}
+BankData1 = B1 %>% mutate(PD,
+                          banktype = substr(B1$bank,1,2))
+
+BankData2 = B2 %>% mutate(CLPD,
+                          BLPD,
+                          banktype = substr(B2$bank,1,2))
+
+BankData3 = B3 %>% mutate(data.frame(PDW,check.names=F),
+                          banktype = substr(B3$bank,1,2),
+                          check.names = F)
+```
+
+```{r}
+BankData1 %>% ptable()
+```
+
+```{r}
+BankData2 %>% ptable()
+```
+
+```{r}
+BankData3 %>% ptable()
+```
+
+```{r}
+BankData1 %$% tapply(PD,list(bank,loantype),mean) %>% round(2) %>% ptable()
+BankData2 %$% tibble(CL = tapply(CLPD,bank,mean), 
+                     BL = tapply(BLPD,bank,mean)) %>% round(2) %>% ptable()
+```
+
+```{r}
+# For BankData1
+BankData1 %$% tapply(PD,list(bank,loantype),mean) %>% round(2) %>% as.data.frame() %>% colMeans() %>% ptable()
+
+```
+```{r}
+BankData2 %$% tibble(CL = tapply(CLPD,bank,mean), 
+                     BL = tapply(BLPD,bank,mean)) %>% round(2) %>% summarise(CL = mean(CL), BL = mean(BL)) %>% ptable()
+
+```
+
+```{r}
+BankData2 %$% tapply(CLPD,bank,mean) %>% barplot()
+BankData2 %$% tapply(CLPD,year,mean) %>% barplot()
+```
+
+
+```{r}
+# Calculate average CLPD by bank and year
+avg_CLPD <- BankData1 %>% 
+  group_by(bank, year) %>% 
+  summarise(avg_CLPD = mean(CLPD))
+
+# Plot average CLPD by bank
+avg_CLPD %>% 
+  ggplot(aes(x = bank, y = avg_CLPD)) + 
+  geom_col(fill = "steelblue") + 
+  labs(title = "Average CLPD by Bank")
+
+# Plot average CLPD by year
+avg_CLPD %>% 
+  ggplot(aes(x = year, y = avg_CLPD)) + 
+  geom_col(fill = "steelblue") + 
+  labs(title = "Average CLPD by Year")
+
+```
+
+```{r}
+BankData1 %$% tapply(PD,list(loantype,year),mean)
+BankData1 %$% tapply(PD,list(year,loantype),mean)
+```
+
+```{r}
+BankData2 %>% 
+  group_by(year) %>% 
+  summarise(mean_CLPD = mean(CLPD), mean_BLPD = mean(BLPD)) %>% ptable()
+
+```
